@@ -7,10 +7,27 @@ import { generateId } from "../utils/crypto";
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
+function mergeUserDefaults(stored: User): User {
+  const seed = initialUsers.find(u => u.id === stored.id);
+  return {
+    bio: seed?.bio ?? "",
+    status: seed?.status ?? "active",
+    membershipStatus: seed?.membershipStatus ?? "free",
+    stats: seed?.stats ?? { worldsJoined: 0, assetsOwned: 0, tradesCompleted: 0, achievements: 0 },
+    connectedWorlds: seed?.connectedWorlds ?? [],
+    connectedModules: seed?.connectedModules ?? [],
+    ...stored,
+  };
+}
+
 function getStoredUsers(): User[] {
   try {
     const stored = localStorage.getItem("universe_users");
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed: User[] = JSON.parse(stored);
+      const migrated = parsed.map(mergeUserDefaults);
+      return migrated;
+    }
   } catch {}
   localStorage.setItem("universe_users", JSON.stringify(initialUsers));
   return initialUsers;
