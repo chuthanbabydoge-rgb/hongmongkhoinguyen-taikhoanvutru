@@ -15,6 +15,7 @@ const SessionsPage = lazy(() => import("@/pages/SessionsPage"));
 const RolesPage = lazy(() => import("@/pages/RolesPage"));
 const EcosystemPage = lazy(() => import("@/pages/EcosystemPage"));
 const IdentityPage = lazy(() => import("@/pages/IdentityPage"));
+const DirectoryPage = lazy(() => import("@/pages/DirectoryPage"));
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,9 @@ function Router() {
         )} />
         <Route path="/identity" component={() => (
           <ProtectedRoute><IdentityPage /></ProtectedRoute>
+        )} />
+        <Route path="/directory" component={() => (
+          <ProtectedRoute><DirectoryPage /></ProtectedRoute>
         )} />
         <Route component={() => <Redirect to="/account-center" />} />
       </Switch>
