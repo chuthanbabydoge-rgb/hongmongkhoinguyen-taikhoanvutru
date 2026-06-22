@@ -5,8 +5,7 @@ import { initialNotifications, liveNotifPool, LiveNotifTemplate } from "../mock/
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-let notifCounter = 9000;
-function genId() { return `notif-live-${++notifCounter}`; }
+function genId() { return `notif-live-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 
 function ensureSeeded(userId: string) {
   const existing = notificationStore.getAll().filter((n) => n.userId === userId);

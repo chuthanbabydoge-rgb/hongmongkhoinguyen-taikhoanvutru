@@ -1,7 +1,7 @@
 import { Notification, NotificationSettings, NotificationCategory } from "../types/notification";
 
-const NOTIF_KEY = "universe_notifications_v3";
-const SETTINGS_KEY = "universe_notification_settings_v3";
+const NOTIF_KEY = "universe_notifications_v4";
+const SETTINGS_KEY = "universe_notification_settings_v4";
 
 const DEFAULT_CATEGORIES: NotificationSettings["categories"] = {
   system: { enabled: true, push: true, sound: true },
