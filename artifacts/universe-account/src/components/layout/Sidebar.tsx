@@ -5,7 +5,7 @@ import { RoleBadge } from "@/components/auth/RoleBadge";
 import { cn } from "@/lib/utils";
 import {
   User, Shield, Monitor, Clock, LogOut,
-  ChevronLeft, ChevronRight, Hexagon, ShieldCheck, Globe2, Fingerprint, BookUser, Trophy, Star, Bell
+  ChevronLeft, ChevronRight, Hexagon, ShieldCheck, Globe2, Fingerprint, BookUser, Trophy, Star, Bell, Smile
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,6 +21,7 @@ const navItems = [
   { path: "/achievements", label: "Achievements", icon: Trophy },
   { path: "/reputation", label: "Reputation", icon: Star },
   { path: "/notifications", label: "Notifications", icon: Bell },
+  { path: "/avatar", label: "Avatar Center", icon: Smile },
 ];
 
 export function Sidebar() {
