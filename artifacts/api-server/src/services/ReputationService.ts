@@ -1,5 +1,6 @@
 import type { IReputationRepository } from "../repositories/IReputationRepository";
 import type { NotificationService } from "./NotificationService";
+import type { ActivityService } from "./ActivityService";
 import type { Reputation, ReputationEvent, LeaderboardEntry } from "../models/reputation";
 import { calculateLevel, getBadgeForLevel, CreateReputationEventRequestSchema } from "../models/reputation";
 import { ZodError } from "zod";
@@ -22,6 +23,7 @@ export class ReputationService {
   constructor(
     private readonly repo: IReputationRepository,
     private readonly notificationService: NotificationService,
+    private readonly activityService?: ActivityService,
   ) {}
 
   /** Get or auto-create reputation for the authenticated user. */
@@ -123,7 +125,6 @@ export class ReputationService {
   ): Promise<void> {
     if (oldLevel === newLevel) return;
 
-    // Only notify on upgrades (CITIZEN < TRUSTED < ELITE < LEGEND < MYTHIC)
     const order = ["CITIZEN", "TRUSTED", "ELITE", "LEGEND", "MYTHIC"];
     const oldIdx = order.indexOf(oldLevel);
     const newIdx = order.indexOf(newLevel);
@@ -139,5 +140,16 @@ export class ReputationService {
       sourceApp: "universe-account",
       priority: "HIGH",
     });
+
+    if (this.activityService) {
+      await this.activityService.record({
+        userId,
+        type: "REPUTATION",
+        sourceApp: "universe-account",
+        title: "Level Up",
+        description: `Bạn đã đạt cấp độ ${newLevel}`,
+        metadata: { oldLevel, newLevel, badge },
+      });
+    }
   }
 }

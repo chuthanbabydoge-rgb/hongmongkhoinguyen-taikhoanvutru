@@ -6,6 +6,7 @@ import identityRouter from "./identity";
 import achievementRouter from "./achievement";
 import notificationRouter from "./notification";
 import reputationRouter from "./reputation";
+import activityRouter from "./activity";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(identityRouter);
 router.use(achievementRouter);
 router.use(notificationRouter);
 router.use(reputationRouter);
+router.use(activityRouter);
 
 export default router;

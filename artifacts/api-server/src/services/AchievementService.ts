@@ -1,6 +1,7 @@
 import type { IAchievementRepository } from "../repositories/IAchievementRepository";
 import type { Achievement, UserAchievement, GrantAchievementRequest } from "../models/achievement";
 import { GrantAchievementRequestSchema } from "../models/achievement";
+import type { ActivityService } from "./ActivityService";
 import { ZodError } from "zod";
 
 export class AchievementNotFoundError extends Error {
@@ -20,7 +21,10 @@ export class AchievementValidationError extends Error {
 export class AchievementService {
   private initialized = false;
 
-  constructor(private readonly repo: IAchievementRepository) {}
+  constructor(
+    private readonly repo: IAchievementRepository,
+    private readonly activityService?: ActivityService,
+  ) {}
 
   /**
    * Seed default achievements. Idempotent — safe to call multiple times.
@@ -53,6 +57,7 @@ export class AchievementService {
    * Grant an achievement to a user by its string key (e.g. "FIRST_LOGIN").
    * Validates input with Zod.
    * Throws AchievementNotFoundError if the key is unknown.
+   * Auto-creates an Activity entry for the grant.
    */
   async grantAchievementByKey(
     raw: unknown,
@@ -70,7 +75,20 @@ export class AchievementService {
     const achievement = await this.repo.findByKey(input.key);
     if (!achievement) throw new AchievementNotFoundError(input.key);
 
-    return this.grantAchievement({ ...input, achievementId: achievement.id });
+    const result = await this.grantAchievement({ ...input, achievementId: achievement.id });
+
+    if (result.created && this.activityService) {
+      await this.activityService.record({
+        userId: input.userId,
+        type: "ACHIEVEMENT",
+        sourceApp: input.grantedBy,
+        title: achievement.name,
+        description: achievement.description,
+        metadata: { achievementKey: achievement.key, points: achievement.points },
+      });
+    }
+
+    return result;
   }
 
   /** Check if a user already has an achievement by key. */

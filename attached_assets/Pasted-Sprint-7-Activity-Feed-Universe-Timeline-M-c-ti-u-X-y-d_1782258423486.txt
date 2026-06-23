@@ -1,0 +1,512 @@
+Sprint 7 — Activity Feed (Universe Timeline)
+
+Mục tiêu
+
+Xây dựng Activity Feed trung tâm cho toàn bộ Universe Ecosystem.
+
+Đây là Timeline dùng chung cho:
+
+- Universe Account
+- Universe Hub
+- Football Universe
+- Animal Evolution
+- World Creator
+- SafePass
+- Exchange Hub
+
+Mọi hệ thống đều có thể ghi hoạt động vào Activity Feed.
+
+Activity Feed sẽ là nguồn dữ liệu chính cho:
+
+- Universe Hub Dashboard
+- User Profile Timeline
+- Notification Center mở rộng
+- Social Layer tương lai
+
+──────────────────────────────
+
+Kiến trúc
+
+Tuân thủ kiến trúc hiện có:
+
+Model
+Repository
+Service
+Controller
+Routes
+Tests
+
+Không phá Sprint 1-6.
+
+──────────────────────────────
+
+Database Schema
+
+Tạo file:
+
+lib/db/src/schema/activities.ts
+
+Schema:
+
+activities
+(
+ id uuid primary key default gen_random_uuid(),
+
+ user_id uuid not null,
+
+ type text not null,
+
+ source_app text not null,
+
+ title text not null,
+
+ description text,
+
+ metadata jsonb,
+
+ visibility text not null default 'PUBLIC',
+
+ created_at timestamp default now()
+)
+
+──────────────────────────────
+
+Activity Types
+
+Enum:
+
+ACCOUNT
+ACHIEVEMENT
+REPUTATION
+NOTIFICATION
+SPORT
+ANIMAL
+WORLD
+MARKETPLACE
+SAFEPASS
+EXCHANGE
+SYSTEM
+
+──────────────────────────────
+
+Visibility
+
+Enum:
+
+PUBLIC
+FRIENDS
+PRIVATE
+
+Mặc định:
+
+PUBLIC
+
+──────────────────────────────
+
+Model
+
+Tạo:
+
+src/models/activity.ts
+
+Bao gồm:
+
+Activity
+
+CreateActivityRequest
+
+ActivityFilter
+
+ActivityType
+
+ActivityVisibility
+
+Zod validation
+
+──────────────────────────────
+
+Repository
+
+Tạo:
+
+src/repositories/IActivityRepository.ts
+
+src/repositories/InMemoryActivityRepository.ts
+
+src/repositories/SupabaseActivityRepository.ts
+
+Methods:
+
+create(activity)
+
+getById(id)
+
+getByUserId(userId)
+
+getFeed(limit, offset)
+
+delete(id)
+
+countByUserId(userId)
+
+──────────────────────────────
+
+Service
+
+Tạo:
+
+src/services/ActivityService.ts
+
+Errors:
+
+ActivityNotFoundError
+
+ActivityValidationError
+
+Methods:
+
+createActivity(
+ userId,
+ type,
+ sourceApp,
+ title,
+ description,
+ metadata?
+)
+
+getMyActivities(userId)
+
+getActivitiesByUserId(userId)
+
+getFeed(limit, offset)
+
+countActivities(userId)
+
+deleteActivity(id)
+
+──────────────────────────────
+
+Auto Integration
+
+Tích hợp với các Sprint trước.
+
+AchievementService
+
+Khi grant achievement:
+
+Tự động tạo Activity:
+
+{
+ type: "ACHIEVEMENT",
+ sourceApp: grantedBy,
+ title: achievement.name,
+ description: achievement.description
+}
+
+──────────────────────────────
+
+ReputationService
+
+Khi level up:
+
+{
+ type: "REPUTATION",
+ sourceApp: "universe-account",
+ title: "Level Up",
+ description: "Bạn đã đạt cấp độ TRUSTED"
+}
+
+──────────────────────────────
+
+NotificationService
+
+Khi tạo notification priority HIGH hoặc URGENT:
+
+{
+ type: "NOTIFICATION",
+ sourceApp: sourceApp,
+ title: notification.title,
+ description: notification.message
+}
+
+──────────────────────────────
+
+Controller
+
+Tạo:
+
+src/controllers/ActivityController.ts
+
+Handlers:
+
+handleGetMyActivities
+
+handleGetActivitiesByUserId
+
+handleGetFeed
+
+handleCreateActivity
+
+handleDeleteActivity
+
+handleCountActivities
+
+──────────────────────────────
+
+Routes
+
+Tạo:
+
+src/routes/activity.ts
+
+Endpoints:
+
+GET /api/activity/me
+
+GET /api/activity/feed
+
+GET /api/activity/count
+
+GET /api/activity/:userId
+
+POST /api/activity
+
+DELETE /api/activity/:id
+
+──────────────────────────────
+
+Responses
+
+GET /api/activity/me
+
+{
+  "activities": [
+    {
+      "id":"uuid",
+      "type":"ACHIEVEMENT",
+      "sourceApp":"football-universe",
+      "title":"First Match Victory",
+      "description":"Bạn đã thắng trận đấu đầu tiên.",
+      "visibility":"PUBLIC",
+      "createdAt":"..."
+    }
+  ]
+}
+
+──────────────────────────────
+
+GET /api/activity/count
+
+{
+  "count": 24
+}
+
+──────────────────────────────
+
+GET /api/activity/feed?limit=20&offset=0
+
+{
+  "activities":[]
+}
+
+Sắp xếp:
+
+newest first
+
+──────────────────────────────
+
+POST /api/activity
+
+{
+  "userId":"uuid",
+  "type":"WORLD",
+  "sourceApp":"world-creator",
+  "title":"New World Created",
+  "description":"Elysium Prime đã được tạo.",
+  "metadata":{
+    "worldId":"abc123"
+  }
+}
+
+──────────────────────────────
+
+Dependency Injection
+
+Cập nhật:
+
+src/container.ts
+
+Wire:
+
+ActivityRepository
+→ ActivityService
+→ ActivityController
+
+Inject ActivityService vào:
+
+AchievementService
+
+NotificationService
+
+ReputationService
+
+──────────────────────────────
+
+Routes Index
+
+Cập nhật:
+
+src/routes/index.ts
+
+Mount:
+
+activity router
+
+──────────────────────────────
+
+Tests
+
+Tạo:
+
+src/__tests__/ActivityService.test.ts
+
+Ít nhất 50 tests.
+
+Bao gồm:
+
+✓ create activity
+
+✓ get activity by id
+
+✓ get my activities
+
+✓ get activities by user
+
+✓ feed empty
+
+✓ feed populated
+
+✓ newest first
+
+✓ pagination limit
+
+✓ pagination offset
+
+✓ count activities
+
+✓ delete activity
+
+✓ delete not found
+
+✓ user isolation
+
+✓ metadata stored
+
+✓ visibility public
+
+✓ visibility friends
+
+✓ visibility private
+
+✓ activity validation
+
+✓ title required
+
+✓ type required
+
+✓ sourceApp required
+
+✓ large metadata
+
+✓ multiple users
+
+✓ count per user
+
+✓ feed sorting
+
+✓ feed limit
+
+✓ feed offset
+
+✓ achievement integration
+
+✓ achievement auto activity
+
+✓ reputation level up activity
+
+✓ notification high priority activity
+
+✓ notification urgent activity
+
+✓ normal notification no activity
+
+✓ repository errors
+
+✓ timestamps
+
+✓ duplicate IDs prevented
+
+✓ activity persistence
+
+✓ public profile feed
+
+✓ account activity
+
+✓ sport activity
+
+✓ world activity
+
+✓ marketplace activity
+
+✓ safepass activity
+
+✓ exchange activity
+
+✓ system activity
+
+✓ delete activity success
+
+✓ delete activity isolation
+
+✓ create many activities
+
+✓ feed performance
+
+✓ activity ordering
+
+✓ metadata retrieval
+
+──────────────────────────────
+
+Definition of Done
+
+Endpoints hoạt động:
+
+GET /api/activity/me
+
+GET /api/activity/feed
+
+GET /api/activity/count
+
+GET /api/activity/:userId
+
+POST /api/activity
+
+DELETE /api/activity/:id
+
+Typecheck PASS.
+
+Tất cả test PASS.
+
+Không phá Sprint 1-6.
+
+Khi hoàn thành hãy trả về:
+
+- Danh sách file tạo mới
+- Danh sách file sửa đổi
+- API endpoints
+- Ví dụ response
+- Số test mới
+- Tổng số test pass
+- Kết quả typecheck
+- Các tích hợp tự động với Achievement / Reputation / Notification

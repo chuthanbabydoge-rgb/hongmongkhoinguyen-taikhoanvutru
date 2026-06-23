@@ -15,12 +15,18 @@ import { NotificationController } from "./controllers/NotificationController";
 import { SupabaseReputationRepository } from "./repositories/SupabaseReputationRepository";
 import { ReputationService } from "./services/ReputationService";
 import { ReputationController } from "./controllers/ReputationController";
+import { SupabaseActivityRepository } from "./repositories/SupabaseActivityRepository";
+import { ActivityService } from "./services/ActivityService";
+import { ActivityController } from "./controllers/ActivityController";
 
 /**
  * Dependency injection container — wires repositories → services → controllers.
  *
- * To swap implementations (e.g. for testing), replace the repository here.
- * In tests, use InMemory*Repository instead of Supabase*Repository.
+ * Dependency order:
+ *   activityService  (no deps on other services)
+ *   notificationService (+ activityService)
+ *   achievementService  (+ activityService)
+ *   reputationService   (+ notificationService, activityService)
  */
 function createContainer() {
   const profileRepository = new SupabaseProfileRepository();
@@ -34,16 +40,21 @@ function createContainer() {
   const identityService = new IdentityService(profileRepository, avatarRepository);
   const identityController = new IdentityController(identityService);
 
+  // Activity must be wired first — other services depend on it
+  const activityRepository = new SupabaseActivityRepository();
+  const activityService = new ActivityService(activityRepository);
+  const activityController = new ActivityController(activityService);
+
   const achievementRepository = new SupabaseAchievementRepository();
-  const achievementService = new AchievementService(achievementRepository);
+  const achievementService = new AchievementService(achievementRepository, activityService);
   const achievementController = new AchievementController(achievementService);
 
   const notificationRepository = new SupabaseNotificationRepository();
-  const notificationService = new NotificationService(notificationRepository);
+  const notificationService = new NotificationService(notificationRepository, activityService);
   const notificationController = new NotificationController(notificationService);
 
   const reputationRepository = new SupabaseReputationRepository();
-  const reputationService = new ReputationService(reputationRepository, notificationService);
+  const reputationService = new ReputationService(reputationRepository, notificationService, activityService);
   const reputationController = new ReputationController(reputationService);
 
   return {
@@ -55,6 +66,9 @@ function createContainer() {
     avatarController,
     identityService,
     identityController,
+    activityRepository,
+    activityService,
+    activityController,
     achievementRepository,
     achievementService,
     achievementController,

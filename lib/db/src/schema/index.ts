@@ -22,3 +22,4 @@ export * from "./avatars";
 export * from "./achievements";
 export * from "./notifications";
 export * from "./reputations";
+export * from "./activities";

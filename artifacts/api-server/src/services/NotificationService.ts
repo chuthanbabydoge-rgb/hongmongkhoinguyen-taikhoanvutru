@@ -6,6 +6,7 @@ import type {
   NotificationCount,
 } from "../models/notification";
 import { CreateNotificationRequestSchema } from "../models/notification";
+import type { ActivityService } from "./ActivityService";
 import { ZodError } from "zod";
 
 export class NotificationNotFoundError extends Error {
@@ -30,12 +31,16 @@ export class NotificationForbiddenError extends Error {
 }
 
 export class NotificationService {
-  constructor(private readonly repo: INotificationRepository) {}
+  constructor(
+    private readonly repo: INotificationRepository,
+    private readonly activityService?: ActivityService,
+  ) {}
 
   /**
    * Send (create) a new notification.
    * Validates input with Zod.
    * Status defaults to UNREAD, priority defaults to NORMAL.
+   * HIGH/URGENT notifications also create an Activity entry.
    */
   async send(raw: unknown): Promise<Notification> {
     let input: CreateNotificationRequest;
@@ -47,7 +52,23 @@ export class NotificationService {
       }
       throw err;
     }
-    return this.repo.create(input);
+
+    const notification = await this.repo.create(input);
+
+    if (
+      this.activityService &&
+      (input.priority === "HIGH" || input.priority === "URGENT")
+    ) {
+      await this.activityService.record({
+        userId: input.userId,
+        type: "NOTIFICATION",
+        sourceApp: input.sourceApp,
+        title: input.title,
+        description: input.message,
+      });
+    }
+
+    return notification;
   }
 
   /**
