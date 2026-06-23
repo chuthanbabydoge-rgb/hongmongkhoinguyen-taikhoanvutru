@@ -21,3 +21,4 @@ export * from "./profiles";
 export * from "./avatars";
 export * from "./achievements";
 export * from "./notifications";
+export * from "./reputations";

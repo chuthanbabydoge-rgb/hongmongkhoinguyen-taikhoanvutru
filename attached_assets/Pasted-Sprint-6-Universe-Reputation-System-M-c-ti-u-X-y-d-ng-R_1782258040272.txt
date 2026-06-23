@@ -1,0 +1,538 @@
+Sprint 6 — Universe Reputation System
+
+Mục tiêu
+
+Xây dựng Reputation System trung tâm cho toàn bộ Universe Ecosystem.
+
+Đây KHÔNG phải Marketplace Reputation.
+
+Đây là Universe Reputation dùng chung cho:
+
+- Universe Hub
+- Football Universe
+- Animal Evolution
+- World Creator
+- SafePass
+- Exchange Hub
+- Các app tương lai
+
+Tất cả app có thể cộng/trừ reputation thông qua Universe Account API.
+
+──────────────────────────────
+
+Kiến trúc
+
+Tuân thủ kiến trúc hiện có:
+
+Model
+Repository
+Service
+Controller
+Routes
+Tests
+
+Không phá vỡ các Sprint trước.
+
+──────────────────────────────
+
+Database Schema
+
+Tạo file:
+
+lib/db/src/schema/reputations.ts
+
+Schema:
+
+reputations
+(
+ id uuid primary key default gen_random_uuid(),
+
+ user_id uuid not null unique,
+
+ score integer not null default 0,
+
+ level text not null default 'CITIZEN',
+
+ positive_events integer not null default 0,
+
+ negative_events integer not null default 0,
+
+ last_activity_at timestamp,
+
+ created_at timestamp default now(),
+
+ updated_at timestamp default now()
+)
+
+──────────────────────────────
+
+History Table
+
+Tạo:
+
+reputation_events
+(
+ id uuid primary key default gen_random_uuid(),
+
+ user_id uuid not null,
+
+ source_app text not null,
+
+ reason text not null,
+
+ points integer not null,
+
+ created_at timestamp default now()
+)
+
+──────────────────────────────
+
+Level System
+
+Tạo helper:
+
+calculateLevel(score)
+
+Rules:
+
+0-99
+CITIZEN
+
+100-499
+TRUSTED
+
+500-999
+ELITE
+
+1000-4999
+LEGEND
+
+5000+
+MYTHIC
+
+──────────────────────────────
+
+Badge Mapping
+
+Tạo helper:
+
+getBadgeForLevel(level)
+
+CITIZEN  -> 🟢
+TRUSTED  -> 🔵
+ELITE     -> 🟣
+LEGEND    -> 🟠
+MYTHIC    -> 🔴
+
+──────────────────────────────
+
+Model
+
+Tạo:
+
+src/models/reputation.ts
+
+Bao gồm:
+
+Reputation
+
+ReputationEvent
+
+CreateReputationEventRequest
+
+LeaderboardEntry
+
+Zod validation
+
+──────────────────────────────
+
+Repository
+
+Tạo:
+
+src/repositories/IReputationRepository.ts
+
+src/repositories/InMemoryReputationRepository.ts
+
+src/repositories/SupabaseReputationRepository.ts
+
+Methods:
+
+getByUserId(userId)
+
+create(userId)
+
+update(reputation)
+
+addPoints(userId, points)
+
+subtractPoints(userId, points)
+
+saveEvent(event)
+
+getEvents(userId)
+
+getLeaderboard(limit)
+
+──────────────────────────────
+
+Service
+
+Tạo:
+
+src/services/ReputationService.ts
+
+Error classes:
+
+ReputationNotFoundError
+
+ReputationValidationError
+
+Methods:
+
+getMyReputation(userId)
+
+getReputation(userId)
+
+addReputation(
+ userId,
+ points,
+ sourceApp,
+ reason
+)
+
+deductReputation(
+ userId,
+ points,
+ sourceApp,
+ reason
+)
+
+getHistory(userId)
+
+getLeaderboard(limit)
+
+──────────────────────────────
+
+Business Rules
+
+Nếu reputation chưa tồn tại:
+
+auto create
+
+──────────────────────────────
+
+addReputation()
+
+score += points
+
+positiveEvents += 1
+
+lastActivityAt = now()
+
+──────────────────────────────
+
+deductReputation()
+
+score -= points
+
+negativeEvents += 1
+
+lastActivityAt = now()
+
+──────────────────────────────
+
+Luôn lưu event:
+
+{
+ sourceApp,
+ reason,
+ points
+}
+
+vào reputation_events
+
+──────────────────────────────
+
+Level Up Detection
+
+Nếu level thay đổi:
+
+CITIZEN → TRUSTED
+
+TRUSTED → ELITE
+
+ELITE → LEGEND
+
+LEGEND → MYTHIC
+
+thì tự động gửi Notification.
+
+Sử dụng NotificationService của Sprint 5.
+
+Notification:
+
+title:
+🎉 Thăng cấp danh tiếng
+
+message:
+Bạn đã đạt cấp độ TRUSTED.
+
+type:
+ACCOUNT
+
+priority:
+HIGH
+
+sourceApp:
+universe-account
+
+──────────────────────────────
+
+Controller
+
+Tạo:
+
+src/controllers/ReputationController.ts
+
+Handlers:
+
+handleGetMyReputation
+
+handleGetReputation
+
+handleAddReputation
+
+handleDeductReputation
+
+handleGetLeaderboard
+
+handleGetHistory
+
+──────────────────────────────
+
+Routes
+
+Tạo:
+
+src/routes/reputation.ts
+
+Endpoints:
+
+GET /api/reputation/me
+
+GET /api/reputation/:userId
+
+GET /api/reputation/leaderboard
+
+GET /api/reputation/history
+
+POST /api/reputation/add
+
+POST /api/reputation/deduct
+
+──────────────────────────────
+
+Responses
+
+GET /api/reputation/me
+
+{
+  "reputation": {
+    "score": 150,
+    "level": "TRUSTED",
+    "badge": "🔵",
+    "positiveEvents": 12,
+    "negativeEvents": 1
+  }
+}
+
+──────────────────────────────
+
+GET /api/reputation/leaderboard
+
+{
+  "users": [
+    {
+      "userId": "uuid",
+      "score": 3200,
+      "level": "LEGEND",
+      "badge": "🟠"
+    }
+  ]
+}
+
+──────────────────────────────
+
+POST /api/reputation/add
+
+{
+  "userId": "uuid",
+  "points": 50,
+  "sourceApp": "football-universe",
+  "reason": "WIN_MATCH"
+}
+
+──────────────────────────────
+
+POST /api/reputation/deduct
+
+{
+  "userId": "uuid",
+  "points": 25,
+  "sourceApp": "marketplace",
+  "reason": "FRAUD_REPORT"
+}
+
+──────────────────────────────
+
+Dependency Injection
+
+Cập nhật:
+
+src/container.ts
+
+Wire:
+
+ReputationRepository
+→ ReputationService
+→ ReputationController
+
+Inject NotificationService vào ReputationService.
+
+──────────────────────────────
+
+Routes Index
+
+Cập nhật:
+
+src/routes/index.ts
+
+Mount:
+
+reputation router
+
+──────────────────────────────
+
+Tests
+
+Tạo:
+
+src/__tests__/ReputationService.test.ts
+
+Ít nhất 40 tests.
+
+Bao gồm:
+
+✓ create reputation
+
+✓ auto create reputation
+
+✓ add reputation
+
+✓ deduct reputation
+
+✓ level citizen
+
+✓ level trusted
+
+✓ level elite
+
+✓ level legend
+
+✓ level mythic
+
+✓ badge mapping
+
+✓ leaderboard sorting
+
+✓ leaderboard limit
+
+✓ history empty
+
+✓ history populated
+
+✓ positive event count
+
+✓ negative event count
+
+✓ lastActivityAt update
+
+✓ event persistence
+
+✓ sourceApp stored
+
+✓ reason stored
+
+✓ level up detection
+
+✓ notification on trusted
+
+✓ notification on elite
+
+✓ notification on legend
+
+✓ notification on mythic
+
+✓ no notification without level change
+
+✓ user isolation
+
+✓ multiple users
+
+✓ negative score
+
+✓ large score
+
+✓ repository errors
+
+✓ validation errors
+
+✓ getMyReputation
+
+✓ getReputation
+
+✓ leaderboard empty
+
+✓ leaderboard populated
+
+✓ history ordering
+
+✓ score recalculation
+
+✓ update timestamps
+
+✓ duplicate user protection
+
+──────────────────────────────
+
+Definition of Done
+
+Tất cả endpoint hoạt động:
+
+GET  /api/reputation/me
+
+GET  /api/reputation/:userId
+
+GET  /api/reputation/leaderboard
+
+GET  /api/reputation/history
+
+POST /api/reputation/add
+
+POST /api/reputation/deduct
+
+Typecheck PASS.
+
+Tất cả test PASS.
+
+Không phá Sprint 1-5.
+
+Khi hoàn thành hãy trả về:
+
+- Danh sách file tạo mới
+- Danh sách file sửa đổi
+- API endpoints
+- Ví dụ response
+- Tổng số test pass
+- Kết quả typecheck
