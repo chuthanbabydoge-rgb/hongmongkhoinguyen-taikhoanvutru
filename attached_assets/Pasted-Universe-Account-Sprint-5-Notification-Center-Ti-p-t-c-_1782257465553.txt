@@ -1,0 +1,496 @@
+Universe Account
+Sprint 5 — Notification Center
+
+Tiếp tục project hiện tại.
+
+KHÔNG thay đổi kiến trúc.
+
+Tiếp tục dùng đúng structure:
+
+Repository
+Service
+Controller
+Routes
+Container
+Drizzle
+Zod
+Vitest
+
+Không làm hỏng Sprint 1–4.
+
+==================================================
+
+MỤC TIÊU
+
+Xây Notification Center dùng chung cho toàn bộ Universe Ecosystem.
+
+Football Universe
+
+Marketplace
+
+World Creator
+
+Animal Evolution
+
+SafePass
+
+Exchange Hub
+
+đều gửi notification về đây.
+
+ĐÂY LÀ Notification của toàn hệ thống.
+
+KHÔNG phải notification riêng Marketplace.
+
+==================================================
+
+DATABASE
+
+Tạo schema
+
+lib/db/src/schema/notifications.ts
+
+Table
+
+notifications
+
+id uuid pk
+
+user_id uuid
+
+type text
+
+title text
+
+message text
+
+icon text
+
+source_app text
+
+priority text
+
+status text
+
+action_url text
+
+metadata jsonb
+
+read_at timestamp nullable
+
+created_at timestamp
+
+==================================================
+
+ENUMS
+
+NotificationType
+
+SYSTEM
+
+ACCOUNT
+
+MARKETPLACE
+
+SPORT
+
+WORLD
+
+ANIMAL
+
+BUSINESS
+
+SECURITY
+
+SOCIAL
+
+ACHIEVEMENT
+
+Priority
+
+LOW
+
+NORMAL
+
+HIGH
+
+URGENT
+
+Status
+
+UNREAD
+
+READ
+
+ARCHIVED
+
+==================================================
+
+MODEL
+
+src/models/notification.ts
+
+Notification
+
+CreateNotificationRequest
+
+NotificationFilter
+
+NotificationCount
+
+==================================================
+
+REPOSITORY
+
+INotificationRepository
+
+Methods
+
+create()
+
+findById()
+
+findByUser()
+
+countUnread()
+
+markRead()
+
+markAllRead()
+
+archive()
+
+delete()
+
+==================================================
+
+SERVICE
+
+NotificationService
+
+Methods
+
+send()
+
+getMyNotifications()
+
+countUnread()
+
+markRead()
+
+markAllRead()
+
+archive()
+
+delete()
+
+==================================================
+
+BUSINESS RULES
+
+send()
+
+tạo notification
+
+status mặc định
+
+UNREAD
+
+priority mặc định
+
+NORMAL
+
+markRead()
+
+chỉ update nếu chưa đọc
+
+markAllRead()
+
+chỉ update notification chưa đọc
+
+archive()
+
+status
+
+ARCHIVED
+
+delete()
+
+xóa mềm hoặc xóa thật đều được
+
+KHÔNG duplicate logic
+
+==================================================
+
+CONTROLLER
+
+NotificationController
+
+Endpoints
+
+GET /api/notifications
+
+GET /api/notifications/unread-count
+
+GET /api/notifications/:id
+
+POST /api/notifications
+
+PATCH /api/notifications/:id/read
+
+PATCH /api/notifications/read-all
+
+PATCH /api/notifications/:id/archive
+
+DELETE /api/notifications/:id
+
+==================================================
+
+QUERY
+
+GET /api/notifications
+
+support
+
+status
+
+type
+
+priority
+
+limit
+
+offset
+
+sort
+
+==================================================
+
+POST BODY
+
+{
+  "userId":"uuid",
+  "type":"MARKETPLACE",
+  "title":"Đã bán vật phẩm",
+  "message":"Bạn vừa bán thành công Giáp Plasma.",
+  "priority":"NORMAL",
+  "sourceApp":"marketplace",
+  "actionUrl":"/marketplace/orders",
+  "metadata":{
+      "listingId":"abc"
+  }
+}
+
+==================================================
+
+RESPONSE
+
+POST
+
+201
+
+{
+   "notification":{}
+}
+
+GET
+
+{
+   "notifications":[]
+}
+
+Unread Count
+
+{
+   "count":12
+}
+
+==================================================
+
+AUTH
+
+GET
+
+PATCH
+
+DELETE
+
+phải dùng auth middleware hiện tại.
+
+Không truyền userId ở các endpoint /me.
+
+==================================================
+
+CONTAINER
+
+Wire
+
+Repository
+
+↓
+
+Service
+
+↓
+
+Controller
+
+==================================================
+
+UNIT TESTS
+
+Tạo
+
+NotificationService.test.ts
+
+Ít nhất
+
+35 tests
+
+Bao gồm
+
+✓ send notification
+
+✓ defaults
+
+✓ metadata
+
+✓ priority
+
+✓ source app
+
+✓ unread count
+
+✓ mark read
+
+✓ mark read twice
+
+✓ mark all read
+
+✓ archive
+
+✓ delete
+
+✓ list notifications
+
+✓ newest first
+
+✓ pagination
+
+✓ filtering status
+
+✓ filtering type
+
+✓ filtering priority
+
+✓ multiple users
+
+✓ isolation
+
+✓ repository errors
+
+✓ validation
+
+✓ empty state
+
+✓ timestamps
+
+✓ actionUrl
+
+✓ readAt
+
+==================================================
+
+TYPECHECK
+
+Không được tạo lỗi TypeScript mới.
+
+Sprint 1
+
+Sprint 2
+
+Sprint 3
+
+Sprint 4
+
+phải tiếp tục PASS.
+
+==================================================
+
+EXPECTED
+
+Sau khi hoàn thành phải báo cáo:
+
+1.
+
+Files created
+
+2.
+
+Files modified
+
+3.
+
+Database schema
+
+4.
+
+API endpoints
+
+5.
+
+Ví dụ API
+
+6.
+
+Số test mới
+
+7.
+
+Tổng số test pass
+
+8.
+
+Typecheck PASS
+
+Không viết pseudo code.
+
+Không để TODO.
+
+Không mock business logic.
+
+Production-ready code.
+
+==================================================
+
+LƯU Ý QUAN TRỌNG
+
+Đây là Notification Center của toàn bộ Universe Ecosystem.
+
+Marketplace sau này sẽ gọi:
+
+POST /api/notifications
+
+Football Universe sẽ gọi:
+
+POST /api/notifications
+
+World Creator sẽ gọi:
+
+POST /api/notifications
+
+Animal Evolution sẽ gọi:
+
+POST /api/notifications
+
+SafePass sẽ gọi:
+
+POST /api/notifications
+
+Exchange Hub sẽ gọi:
+
+POST /api/notifications
+
+Thiết kế API đủ tổng quát để mọi project đều dùng được.
+
+Không hardcode Marketplace.
