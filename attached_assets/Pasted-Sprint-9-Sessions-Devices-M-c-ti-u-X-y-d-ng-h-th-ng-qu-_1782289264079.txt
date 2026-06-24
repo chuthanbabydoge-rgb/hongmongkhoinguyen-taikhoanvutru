@@ -1,0 +1,474 @@
+Sprint 9 — Sessions & Devices
+Mục tiêu
+
+Xây dựng hệ thống quản lý:
+
+Sessions
+Devices
+Login History
+Security Center
+Logout All Devices
+
+cho Universe Account.
+
+Sprint này là tầng bảo mật trung tâm của toàn bộ ecosystem:
+
+Universe Hub
+Football Universe
+Animal Evolution
+World Creator
+SafePass
+Exchange Hub
+
+Tất cả app dùng SSO (Sprint 8) đều phải được ghi nhận session và device.
+
+Kiến trúc bắt buộc
+
+Tuân thủ 100% kiến trúc hiện có:
+
+Model
+Repository
+Service
+Controller
+Routes
+Tests
+
+Không phá Sprint 1 → Sprint 8.
+
+Database Schema
+
+Tạo file:
+
+lib/db/src/schema/sessions.ts
+Bảng devices
+devices
+
+id uuid primary key
+
+user_id uuid not null
+
+fingerprint text not null
+
+device_name text
+
+platform text
+
+browser text
+
+last_seen_at timestamp
+
+created_at timestamp
+Bảng sessions
+sessions
+
+id uuid primary key
+
+user_id uuid not null
+
+application_id uuid not null
+
+device_id uuid not null
+
+access_token_id uuid
+
+ip_address text
+
+user_agent text
+
+is_active boolean default true
+
+last_seen_at timestamp
+
+expires_at timestamp
+
+created_at timestamp
+
+Export từ:
+
+lib/db/src/schema/index.ts
+Models
+
+Tạo:
+
+src/models/session.ts
+
+Bao gồm:
+
+Device
+
+Session
+
+CreateDeviceRequest
+
+CreateSessionRequest
+
+SessionSummary
+
+DeviceSummary
+
+LogoutAllResponse
+
+Validation bằng Zod.
+
+Repository Layer
+
+Tạo:
+
+src/repositories/ISessionRepository.ts
+
+src/repositories/InMemorySessionRepository.ts
+
+src/repositories/SupabaseSessionRepository.ts
+
+Methods:
+
+createDevice()
+
+findDeviceById()
+
+findDeviceByFingerprint()
+
+findDevicesByUserId()
+
+updateDevice()
+
+deleteDevice()
+
+createSession()
+
+findSessionById()
+
+findSessionsByUserId()
+
+updateSession()
+
+revokeSession()
+
+revokeAllSessions()
+
+countActiveSessions()
+Service Layer
+
+Tạo:
+
+src/services/SessionService.ts
+
+Errors:
+
+SessionNotFoundError
+
+DeviceNotFoundError
+
+SessionValidationError
+Device Fingerprint Logic
+
+Nếu:
+
+same user
+same fingerprint
+
+thì:
+
+không tạo device mới
+
+mà:
+
+update lastSeenAt
+
+để tránh duplicate.
+
+Session Creation
+
+Method:
+
+createSession()
+
+Input:
+
+userId
+applicationId
+fingerprint
+deviceName
+platform
+browser
+ipAddress
+userAgent
+expiresAt
+accessTokenId
+
+Flow:
+
+1. tìm device theo fingerprint
+
+2. nếu chưa có
+      tạo device mới
+
+3. tạo session
+
+4. session active=true
+
+5. lưu lastSeenAt
+Touch Session
+
+Method:
+
+touchSession(sessionId)
+
+Cập nhật:
+
+lastSeenAt
+
+mỗi lần app verify token.
+
+Revoke Session
+
+Method:
+
+revokeSession(sessionId)
+
+Kết quả:
+
+isActive = false
+Logout All
+
+Method:
+
+logoutAll(userId)
+
+Revoke:
+
+toàn bộ session
+
+của user.
+
+Trả về:
+
+{
+  "revoked": 5
+}
+Query Methods
+getMySessions()
+
+getMyDevices()
+
+countActiveSessions()
+SSO Integration
+
+Sửa:
+
+src/services/SSOService.ts
+
+Inject:
+
+SessionService
+Khi generateToken()
+
+Sau khi tạo access token:
+
+await sessionService.createSession(...)
+Khi verifyToken()
+
+Sau khi verify thành công:
+
+await sessionService.touchSession(...)
+Khi revokeToken()
+
+Sau khi revoke token:
+
+await sessionService.revokeSession(...)
+Controllers
+
+Tạo:
+
+src/controllers/SessionController.ts
+
+Handlers:
+
+getMySessions()
+
+getMyDevices()
+
+revokeSession()
+
+revokeDevice()
+
+logoutAll()
+Routes
+
+Tạo:
+
+src/routes/security.ts
+
+Endpoints:
+
+Sessions
+GET /api/security/sessions
+
+Danh sách session.
+
+DELETE /api/security/sessions/:id
+
+Revoke session.
+
+Devices
+GET /api/security/devices
+
+Danh sách thiết bị.
+
+DELETE /api/security/devices/:id
+
+Xóa thiết bị.
+
+Đồng thời revoke mọi session liên quan.
+
+Logout All
+POST /api/security/logout-all
+
+Logout khỏi mọi app.
+
+Response Examples
+GET /api/security/sessions
+{
+  "sessions": [
+    {
+      "id": "uuid",
+      "applicationId": "football-universe",
+      "deviceId": "uuid",
+      "isActive": true,
+      "lastSeenAt": "2026-06-24T10:00:00Z",
+      "expiresAt": "2026-07-24T10:00:00Z"
+    }
+  ]
+}
+GET /api/security/devices
+{
+  "devices": [
+    {
+      "id": "uuid",
+      "deviceName": "Windows PC",
+      "platform": "Windows",
+      "browser": "Chrome",
+      "lastSeenAt": "2026-06-24T10:00:00Z"
+    }
+  ]
+}
+POST /api/security/logout-all
+{
+  "revoked": 8
+}
+Container Wiring
+
+Sửa:
+
+src/container.ts
+
+Wire:
+
+SessionRepository
+↓
+SessionService
+↓
+SessionController
+
+Inject:
+
+SessionService
+
+vào:
+
+SSOService
+Unit Tests
+
+Tạo:
+
+src/__tests__/SessionService.test.ts
+
+Tối thiểu:
+
+70 tests
+Device Tests
+create device
+
+find device
+
+update device
+
+delete device
+
+same fingerprint no duplicate
+
+lastSeen updated
+
+multiple devices
+
+user isolation
+Session Tests
+create session
+
+active session
+
+session timestamps
+
+multiple sessions
+
+unique ids
+
+session lookup
+
+count active sessions
+
+expired sessions
+Revoke Tests
+revoke session
+
+already revoked
+
+session not found
+
+revoke all
+
+returns count
+
+user isolation
+SSO Integration Tests
+generateToken creates session
+
+verifyToken touches session
+
+revokeToken revokes session
+
+multiple apps
+
+multiple devices
+
+cross-app sessions
+Edge Cases
+large session counts
+
+expired tokens
+
+invalid ids
+
+duplicate fingerprints
+
+cross-user isolation
+
+device removal revokes sessions
+Acceptance Criteria
+✓ 70+ unit tests
+
+✓ All tests passing
+
+✓ api-server typecheck PASS
+
+✓ No regression Sprint 1 → Sprint 8
+
+✓ SessionService integrated with SSOService
+
+✓ Device fingerprint deduplication works
+
+✓ Logout-all works
+
+✓ Security Center API complete
+
+✓ Ready for Universe Hub integration

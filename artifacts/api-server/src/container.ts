@@ -24,6 +24,9 @@ import { SSOController } from "./controllers/SSOController";
 import { SupabaseUserSettingsRepository } from "./repositories/SupabaseUserSettingsRepository";
 import { UserSettingsService } from "./services/UserSettingsService";
 import { UserSettingsController } from "./controllers/UserSettingsController";
+import { SupabaseSessionRepository } from "./repositories/SupabaseSessionRepository";
+import { SessionService } from "./services/SessionService";
+import { SessionController } from "./controllers/SessionController";
 
 /**
  * Dependency injection container — wires repositories → services → controllers.
@@ -64,9 +67,14 @@ function createContainer() {
   const reputationService = new ReputationService(reputationRepository, notificationService, activityService);
   const reputationController = new ReputationController(reputationService);
 
-  // SSO — depends on profileService, avatarService, identityService
+  // Sprint 9 — Sessions & Devices (must be wired before SSO)
+  const sessionRepository = new SupabaseSessionRepository();
+  const sessionService = new SessionService(sessionRepository);
+  const sessionController = new SessionController(sessionService);
+
+  // SSO — depends on profileService, avatarService, identityService, sessionService
   const applicationRepository = new SupabaseApplicationRepository();
-  const ssoService = new SSOService(applicationRepository, profileService, avatarService, identityService);
+  const ssoService = new SSOService(applicationRepository, profileService, avatarService, identityService, sessionService);
   const ssoController = new SSOController(ssoService);
 
   // Sprint 10 — UserSettings
@@ -99,6 +107,9 @@ function createContainer() {
     reputationRepository,
     reputationService,
     reputationController,
+    sessionRepository,
+    sessionService,
+    sessionController,
     applicationRepository,
     ssoService,
     ssoController,

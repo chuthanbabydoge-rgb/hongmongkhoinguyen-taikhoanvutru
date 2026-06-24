@@ -9,6 +9,7 @@ import reputationRouter from "./reputation";
 import activityRouter from "./activity";
 import ssoRouter from "./sso";
 import settingsRouter from "./settings";
+import securityRouter from "./security";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(reputationRouter);
 router.use(activityRouter);
 router.use(ssoRouter);
 router.use(settingsRouter);
+router.use(securityRouter);
 
 export default router;

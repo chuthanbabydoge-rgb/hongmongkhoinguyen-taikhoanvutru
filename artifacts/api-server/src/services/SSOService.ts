@@ -4,6 +4,7 @@ import type { IApplicationRepository } from "../repositories/IApplicationReposit
 import type { ProfileService } from "./ProfileService";
 import type { AvatarService } from "./AvatarService";
 import type { IdentityService } from "./IdentityService";
+import type { SessionService } from "./SessionService";
 import type {
   Application,
   AccessToken,
@@ -91,6 +92,7 @@ export class SSOService {
     private readonly profileService: ProfileService,
     private readonly avatarService: AvatarService,
     private readonly identityService: IdentityService,
+    private readonly sessionService?: SessionService,
   ) {}
 
   /**
@@ -137,12 +139,23 @@ export class SSOService {
     const token = generateToken();
     const exp = expiresAt();
 
-    await this.repo.saveToken({
+    const savedToken = await this.repo.saveToken({
       userId,
       applicationId: app.id,
       token,
       expiresAt: exp,
     });
+
+    // Sprint 9 — record session when token is generated
+    if (this.sessionService) {
+      await this.sessionService.createSession({
+        userId,
+        applicationId: app.id,
+        fingerprint:   `auto-${app.id}`,
+        accessTokenId: savedToken.id,
+        expiresAt:     exp,
+      }).catch(() => { /* non-fatal */ });
+    }
 
     return { token, expiresAt: exp };
   }
@@ -175,6 +188,15 @@ export class SSOService {
       universeId  = profile.universeId;
     }
 
+    // Sprint 9 — touch session on successful verify
+    if (this.sessionService) {
+      const sessions = await this.sessionService.getMySessions(record.userId).catch(() => []);
+      const match = sessions.find((s) => s.applicationId === record.applicationId);
+      if (match) {
+        await this.sessionService.touchSession(match.id).catch(() => { /* non-fatal */ });
+      }
+    }
+
     return {
       userId:      record.userId,
       universeId,
@@ -190,6 +212,15 @@ export class SSOService {
    */
   async revokeToken(token: string): Promise<void> {
     this.validate(RevokeTokenRequestSchema, { token });
+
+    // Sprint 9 — revoke session before deleting the token record
+    if (this.sessionService) {
+      const record = await this.repo.findToken(token).catch(() => null);
+      if (record) {
+        await this.sessionService.revokeSessionByToken(record.userId, record.id).catch(() => { /* non-fatal */ });
+      }
+    }
+
     await this.repo.revokeToken(token);
   }
 
