@@ -24,3 +24,4 @@ export * from "./notifications";
 export * from "./reputations";
 export * from "./activities";
 export * from "./applications";
+export * from "./userSettings";

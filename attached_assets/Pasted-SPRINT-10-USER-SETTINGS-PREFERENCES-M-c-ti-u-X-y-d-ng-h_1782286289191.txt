@@ -1,0 +1,477 @@
+SPRINT 10 — USER SETTINGS & PREFERENCES
+
+Mục tiêu:
+
+Xây dựng hệ thống User Settings & Preferences trung tâm cho Universe Account.
+
+Đây là nơi lưu toàn bộ cài đặt người dùng dùng chung cho:
+
+Universe Hub
+Football Universe
+Animal Evolution
+World Creator
+SafePass
+Exchange Hub
+các ứng dụng ecosystem tương lai
+
+Yêu cầu:
+
+Bắt buộc giữ nguyên kiến trúc hiện tại của project:
+
+Models
+Repositories
+Services
+Controllers
+Routes
+Tests
+
+Không được phá vỡ bất kỳ Sprint nào từ Sprint 1 → Sprint 9.
+
+Tạo database schema mới:
+
+lib/db/src/schema/userSettings.ts
+
+Tạo bảng:
+
+user_settings
+
+Fields:
+
+id uuid primary key
+user_id uuid unique not null
+
+Theme:
+
+theme text default 'SYSTEM'
+
+Localization:
+
+language text default 'en'
+timezone text default 'UTC'
+
+Privacy:
+
+privacy_profile text default 'PUBLIC'
+privacy_activity text default 'PUBLIC'
+privacy_reputation text default 'PUBLIC'
+
+Notifications:
+
+email_notifications boolean default true
+push_notifications boolean default true
+marketplace_notifications boolean default true
+achievement_notifications boolean default true
+reputation_notifications boolean default true
+security_notifications boolean default true
+
+Social:
+
+allow_friend_requests boolean default true
+allow_direct_messages boolean default true
+show_online_status boolean default true
+show_last_seen boolean default true
+
+Audit:
+
+created_at
+updated_at
+
+Export schema trong:
+
+lib/db/src/schema/index.ts
+
+Tạo model:
+
+src/models/userSettings.ts
+
+Bao gồm:
+
+UserSettings
+
+UpdateUserSettingsRequest
+
+Enums:
+
+Theme:
+
+LIGHT
+DARK
+SYSTEM
+
+Language:
+
+en
+vi
+ja
+ko
+zh
+
+Privacy:
+
+PUBLIC
+FRIENDS
+PRIVATE
+
+Validation sử dụng Zod.
+
+Tạo Repository Layer:
+
+src/repositories/IUserSettingsRepository.ts
+
+src/repositories/InMemoryUserSettingsRepository.ts
+
+src/repositories/SupabaseUserSettingsRepository.ts
+
+Methods:
+
+create()
+
+findByUserId()
+
+update()
+
+delete()
+
+exists()
+
+upsert()
+
+Tạo Service:
+
+src/services/UserSettingsService.ts
+
+Errors:
+
+SettingsNotFoundError
+
+SettingsValidationError
+
+Bắt buộc hỗ trợ auto-create settings.
+
+Nếu user chưa có settings:
+
+getMySettings(userId)
+
+sẽ tự động tạo:
+
+{
+theme: "SYSTEM",
+language: "en",
+timezone: "UTC",
+
+privacyProfile: "PUBLIC",
+privacyActivity: "PUBLIC",
+privacyReputation: "PUBLIC",
+
+emailNotifications: true,
+pushNotifications: true,
+
+marketplaceNotifications: true,
+achievementNotifications: true,
+reputationNotifications: true,
+securityNotifications: true,
+
+allowFriendRequests: true,
+allowDirectMessages: true,
+
+showOnlineStatus: true,
+showLastSeen: true
+}
+
+Methods bắt buộc:
+
+getMySettings(userId)
+
+updateMySettings(userId,data)
+
+resetSettings(userId)
+
+Update phải hỗ trợ partial update.
+
+Ví dụ chỉ update:
+
+theme
+
+hoặc:
+
+theme + language
+
+hoặc:
+
+privacy settings
+
+mà không ảnh hưởng các field khác.
+
+Xây Privacy Resolver trong service:
+
+canViewProfile(
+ownerSettings,
+viewerRelation
+)
+
+viewerRelation:
+
+OWNER
+
+FRIEND
+
+PUBLIC
+
+Rules:
+
+PUBLIC:
+ai cũng xem được
+
+FRIENDS:
+owner hoặc friend
+
+PRIVATE:
+chỉ owner
+
+Xây Notification Preference Resolver:
+
+shouldSendNotification(
+settings,
+notificationType
+)
+
+Mapping:
+
+ACHIEVEMENT
+→ achievementNotifications
+
+REPUTATION
+→ reputationNotifications
+
+MARKETPLACE
+→ marketplaceNotifications
+
+SECURITY
+→ securityNotifications
+
+SYSTEM
+→ pushNotifications
+
+Return:
+
+true | false
+
+Controller:
+
+src/controllers/UserSettingsController.ts
+
+Handlers:
+
+getMySettings
+
+updateMySettings
+
+resetSettings
+
+Routes:
+
+src/routes/settings.ts
+
+Endpoints:
+
+GET /api/settings/me
+
+PATCH /api/settings/me
+
+POST /api/settings/reset
+
+Ví dụ:
+
+GET /api/settings/me
+
+trả:
+
+{
+"settings": {
+"theme": "SYSTEM",
+"language": "en",
+"timezone": "UTC",
+"privacyProfile": "PUBLIC",
+"privacyActivity": "PUBLIC",
+"privacyReputation": "PUBLIC",
+"emailNotifications": true,
+"pushNotifications": true,
+"marketplaceNotifications": true,
+"achievementNotifications": true,
+"reputationNotifications": true,
+"securityNotifications": true,
+"allowFriendRequests": true,
+"allowDirectMessages": true,
+"showOnlineStatus": true,
+"showLastSeen": true
+}
+}
+
+PATCH /api/settings/me
+
+body:
+
+{
+"theme": "DARK",
+"language": "vi",
+"privacyProfile": "FRIENDS",
+"showLastSeen": false
+}
+
+POST /api/settings/reset
+
+Reset toàn bộ về mặc định.
+
+Tích hợp Activity Feed (Sprint 7).
+
+Inject ActivityService vào UserSettingsService.
+
+Khi update settings:
+
+record activity:
+
+type = ACCOUNT
+
+title = Settings Updated
+
+sourceApp = universe-account
+
+visibility = PRIVATE
+
+Khi reset settings:
+
+record activity:
+
+type = ACCOUNT
+
+title = Settings Reset
+
+sourceApp = universe-account
+
+visibility = PRIVATE
+
+Tích hợp Notification Center (Sprint 5).
+
+Inject NotificationService.
+
+Khi thay đổi:
+
+privacyProfile
+
+privacyActivity
+
+privacyReputation
+
+=> gửi ACCOUNT notification priority NORMAL.
+
+Khi tắt:
+
+securityNotifications
+
+=> gửi SECURITY notification priority HIGH.
+
+Container:
+
+Wire:
+
+UserSettingsRepository
+
+↓
+
+UserSettingsService
+
+↓
+
+UserSettingsController
+
+Inject:
+
+ActivityService
+
+NotificationService
+
+Mount route:
+
+/api/settings
+
+trong routes/index.ts
+
+Tạo test:
+
+src/tests/UserSettingsService.test.ts
+
+Ít nhất 75 tests.
+
+Bao phủ:
+
+Auto create settings
+
+Defaults
+
+Update theme
+
+Update language
+
+Update timezone
+
+Update privacy
+
+Update notification preferences
+
+Update social preferences
+
+Partial updates
+
+Validation errors
+
+Privacy resolver
+
+Notification resolver
+
+Reset settings
+
+Activity integration
+
+Notification integration
+
+Persistence
+
+Timestamps
+
+User isolation
+
+Multi-user scenarios
+
+Edge cases
+
+Acceptance Criteria:
+
+✓ 75+ unit tests
+
+✓ Tất cả tests pass
+
+✓ api-server typecheck PASS
+
+✓ Không regression Sprint 1 → Sprint 9
+
+✓ Auto-create settings hoạt động
+
+✓ Privacy resolver hoạt động
+
+✓ Notification resolver hoạt động
+
+✓ Activity integration hoạt động
+
+✓ Notification integration hoạt động
+
+✓ Sẵn sàng cho Universe Hub và toàn bộ ecosystem sử dụng làm User Preferences Service
+
+Sau khi hoàn thành, trả về:
+
+Danh sách file tạo mới
+Danh sách file sửa đổi
+API endpoints
+Tổng số tests
+Kết quả typecheck
+Ví dụ request/response
+Báo cáo Sprint 10 hoàn chỉnh theo format các Sprint trước.

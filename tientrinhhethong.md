@@ -79,6 +79,20 @@
 - [x] Lưu trạng thái vào localStorage
 - [x] Responsive design (1 → 2 → 3 cột)
 
+### 8. User Settings & Preferences (`/api/settings`)
+- [x] **Database schema:** `user_settings` table với 20 fields (theme, language, timezone, privacy, notifications, social)
+- [x] **Model:** `UserSettings`, `UpdateUserSettingsRequest`, enums `Theme` / `Language` / `Privacy` / `ViewerRelation` / `NotificationSettingType`
+- [x] **Repository layer:** `IUserSettingsRepository`, `InMemoryUserSettingsRepository`, `SupabaseUserSettingsRepository`
+- [x] **Service:** `UserSettingsService` với auto-create defaults, partial update, reset
+- [x] **Privacy Resolver:** `canViewProfile(ownerSettings, viewerRelation)` — PUBLIC / FRIENDS / PRIVATE rules
+- [x] **Notification Resolver:** `shouldSendNotification(settings, notificationType)` — ACHIEVEMENT / REPUTATION / MARKETPLACE / SECURITY / SYSTEM
+- [x] **Activity Integration:** ghi activity khi update (`Settings Updated`) và reset (`Settings Reset`)
+- [x] **Notification Integration:** gửi ACCOUNT NORMAL khi đổi privacy; gửi SECURITY HIGH khi tắt securityNotifications
+- [x] **Controller:** `UserSettingsController` với handlers `getMySettings`, `updateMySettings`, `resetSettings`
+- [x] **Routes:** `GET /api/settings/me`, `PATCH /api/settings/me`, `POST /api/settings/reset`
+- [x] **Container wired:** `UserSettingsRepository → UserSettingsService → UserSettingsController`
+- [x] **Tests:** 113 tests, 100% pass
+
 ---
 
 ## Kiến Trúc Kỹ Thuật
@@ -196,3 +210,4 @@ artifacts/universe-account/
 | 21/06/2026 | Security Center | ✅ Hoàn thành |
 | 21/06/2026 | Account Center | ✅ Hoàn thành |
 | 21/06/2026 | Authentication System | ✅ Hoàn thành |
+| 24/06/2026 | User Settings & Preferences (Sprint 10) | ✅ Hoàn thành |

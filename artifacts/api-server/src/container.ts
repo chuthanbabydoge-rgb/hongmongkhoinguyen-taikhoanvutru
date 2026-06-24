@@ -21,6 +21,9 @@ import { ActivityController } from "./controllers/ActivityController";
 import { SupabaseApplicationRepository } from "./repositories/SupabaseApplicationRepository";
 import { SSOService } from "./services/SSOService";
 import { SSOController } from "./controllers/SSOController";
+import { SupabaseUserSettingsRepository } from "./repositories/SupabaseUserSettingsRepository";
+import { UserSettingsService } from "./services/UserSettingsService";
+import { UserSettingsController } from "./controllers/UserSettingsController";
 
 /**
  * Dependency injection container — wires repositories → services → controllers.
@@ -30,6 +33,7 @@ import { SSOController } from "./controllers/SSOController";
  *   notificationService (+ activityService)
  *   achievementService  (+ activityService)
  *   reputationService   (+ notificationService, activityService)
+ *   userSettingsService (+ activityService, notificationService)
  */
 function createContainer() {
   const profileRepository = new SupabaseProfileRepository();
@@ -65,6 +69,15 @@ function createContainer() {
   const ssoService = new SSOService(applicationRepository, profileService, avatarService, identityService);
   const ssoController = new SSOController(ssoService);
 
+  // Sprint 10 — UserSettings
+  const userSettingsRepository = new SupabaseUserSettingsRepository();
+  const userSettingsService = new UserSettingsService(
+    userSettingsRepository,
+    activityService,
+    notificationService,
+  );
+  const userSettingsController = new UserSettingsController(userSettingsService);
+
   return {
     profileRepository,
     profileService,
@@ -89,6 +102,9 @@ function createContainer() {
     applicationRepository,
     ssoService,
     ssoController,
+    userSettingsRepository,
+    userSettingsService,
+    userSettingsController,
   } as const;
 }
 

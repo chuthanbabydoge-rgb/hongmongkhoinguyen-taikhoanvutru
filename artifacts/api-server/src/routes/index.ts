@@ -8,6 +8,7 @@ import notificationRouter from "./notification";
 import reputationRouter from "./reputation";
 import activityRouter from "./activity";
 import ssoRouter from "./sso";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(notificationRouter);
 router.use(reputationRouter);
 router.use(activityRouter);
 router.use(ssoRouter);
+router.use(settingsRouter);
 
 export default router;
