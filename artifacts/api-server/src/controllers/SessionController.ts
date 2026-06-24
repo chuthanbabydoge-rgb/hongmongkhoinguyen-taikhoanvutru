@@ -25,7 +25,7 @@ export class SessionController {
   handleRevokeSession = async (req: Request, res: Response): Promise<void> => {
     const userId = (req as Request & { userId?: string }).userId;
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const { id } = req.params;
+    const id = Array.isArray(req.params["id"]) ? req.params["id"][0] : req.params["id"];
     try {
       await this.service.revokeSession(id);
       res.json({ revoked: true });
@@ -41,7 +41,7 @@ export class SessionController {
   handleRevokeDevice = async (req: Request, res: Response): Promise<void> => {
     const userId = (req as Request & { userId?: string }).userId;
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const { id } = req.params;
+    const id = Array.isArray(req.params["id"]) ? req.params["id"][0] : req.params["id"];
     try {
       await this.service.revokeDevice(userId, id);
       res.json({ revoked: true });

@@ -27,6 +27,10 @@ import { UserSettingsController } from "./controllers/UserSettingsController";
 import { SupabaseSessionRepository } from "./repositories/SupabaseSessionRepository";
 import { SessionService } from "./services/SessionService";
 import { SessionController } from "./controllers/SessionController";
+import { SupabaseUserRepository } from "./repositories/SupabaseUserRepository";
+import { SupabaseRefreshTokenRepository } from "./repositories/SupabaseRefreshTokenRepository";
+import { AuthService } from "./services/AuthService";
+import { AuthController } from "./controllers/AuthController";
 
 /**
  * Dependency injection container — wires repositories → services → controllers.
@@ -37,6 +41,8 @@ import { SessionController } from "./controllers/SessionController";
  *   achievementService  (+ activityService)
  *   reputationService   (+ notificationService, activityService)
  *   userSettingsService (+ activityService, notificationService)
+ *   authService         (+ profileService, avatarService, reputationService,
+ *                          userSettingsService, activityService, notificationService)
  */
 function createContainer() {
   const profileRepository = new SupabaseProfileRepository();
@@ -86,6 +92,19 @@ function createContainer() {
   );
   const userSettingsController = new UserSettingsController(userSettingsService);
 
+  // Sprint AUTH-1 — Authentication (wired last; depends on all ecosystem services)
+  const userRepository = new SupabaseUserRepository();
+  const refreshTokenRepository = new SupabaseRefreshTokenRepository();
+  const authService = new AuthService(userRepository, refreshTokenRepository, {
+    profileService,
+    avatarService,
+    reputationService,
+    userSettingsService,
+    activityService,
+    notificationService,
+  });
+  const authController = new AuthController(authService);
+
   return {
     profileRepository,
     profileService,
@@ -116,6 +135,10 @@ function createContainer() {
     userSettingsRepository,
     userSettingsService,
     userSettingsController,
+    userRepository,
+    refreshTokenRepository,
+    authService,
+    authController,
   } as const;
 }
 

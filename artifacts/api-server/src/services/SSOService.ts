@@ -190,7 +190,7 @@ export class SSOService {
 
     // Sprint 9 — touch session on successful verify
     if (this.sessionService) {
-      const sessions = await this.sessionService.getMySessions(record.userId).catch(() => []);
+      const sessions = await this.sessionService.getMySessions(record.userId).catch(() => [] as Awaited<ReturnType<typeof this.sessionService.getMySessions>>);
       const match = sessions.find((s) => s.applicationId === record.applicationId);
       if (match) {
         await this.sessionService.touchSession(match.id).catch(() => { /* non-fatal */ });
